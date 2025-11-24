@@ -1,0 +1,12 @@
+# Go build
+/bin/
+/out/
+/*.exe
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Docker
+*.tar
