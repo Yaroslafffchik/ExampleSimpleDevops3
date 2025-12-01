@@ -1,0 +1,70 @@
+version: "3.8"
+
+# Docker Stack файл для запуска в Swarm (одиночный менеджер).
+# Важно: стек не поддерживает build. Образы должны быть доступны локально или в реестре.
+# Мы будем использовать локально собранные и протегированные образы devops3-service1:latest и devops3-service2:latest.
+
+services:
+  service1:
+    image: devops3-service1:latest
+    environment:
+      SERVICE_NAME: "service1"
+      PORT: "8080"
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    networks:
+      - swarmnet
+    ports:
+      - target: 8080
+        published: 8081
+        protocol: tcp
+        mode: host
+
+  service2:
+    image: devops3-service2:latest
+    environment:
+      SERVICE_NAME: "service2"
+      PORT: "8080"
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    networks:
+      - swarmnet
+    ports:
+      - target: 8080
+        published: 8082
+        protocol: tcp
+        mode: host
+
+  nginx:
+    image: nginx:1.25-alpine
+    # Публикуем порт 80 контейнера на 8080 хоста, чтобы тестировать через localhost:8080
+    ports:
+      - target: 80
+        published: 8080
+        protocol: tcp
+        mode: host
+    # Используем Swarm configs для подсовывания кастомного nginx.conf
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+    depends_on:
+      - service1
+      - service2
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - swarmnet
+
+configs:
+  nginx_conf:
+    file: ./nginx/nginx.conf
+
+networks:
+  swarmnet:
+    driver: overlay
